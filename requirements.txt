@@ -1,0 +1,11 @@
+openai
+gradio
+langchain
+langchain-openai
+langgraph
+langchain-community
+python-dotenv
+streamlit
+chromadb
+pydantic
+ipykernel
