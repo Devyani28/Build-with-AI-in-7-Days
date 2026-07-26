@@ -8,9 +8,19 @@ Learn modern AI by building real-world projects in just 7 days. Covers LLMs, Pro
 
 Most AI courses teach lots of theory and very little implementation.
 
+The goal of this project is to start with a simple conversational chatbot and gradually add advanced AI features:
+- ✅ Basic chatbot conversation
+- 🔜 Web search tools
+- 🔜 LangChain tools
+- 🔜 Middleware
+- 🔜 RAG (Retrieval Augmented Generation)
+- 🔜 Vector databases
+- 🔜 Conversation memory
+- 🔜 Agents
+- 🔜 Production deployment
+
 In this repository, we'll build ONE chatbot and improve it every day until it becomes a production-ready Agentic AI application.
 
-## What you'll build
 
 Day 1 - Talk to an LLM using APIs.
 
@@ -18,13 +28,26 @@ Day 2 - Build a chatbot UI using Gradio.
 
 Day 3 - Integrate LangChain.
 
-Day 4 - Convert the chatbot into an AI Agent by adding tools.
+Day 4 - Convert the chatbot into an AI Agent by adding tools like - Search the internet, bash access.
 
 Day 5 - Add memory and checkpointing.
 
 Day 6 - Connect external knowledge using RAG and databases.
 
 Day 7 - Build a production-ready multi-session AI Agent.
+
+
+
+
+
+
+- Answer questions using live information
+
+
+## Day 3: Add Middleware
+
+Add control layers between:
+
 
 ## Prerequisites
 
