@@ -22,31 +22,19 @@ The goal of this project is to start with a simple conversational chatbot and gr
 In this repository, we'll build ONE chatbot and improve it every day until it becomes a production-ready Agentic AI application.
 
 
-Day 1 - Talk to an LLM using APIs.
+Day 1 - Talk to an LLM using APIs, and Build a chatbot UI using Gradio.
 
-Day 2 - Build a chatbot UI using Gradio.
+Day 2 - Integrate LangChain.
 
-Day 3 - Integrate LangChain.
+Day 3 - Convert the chatbot into an AI Agent by adding tools like - Search the internet.
 
-Day 4 - Convert the chatbot into an AI Agent by adding tools like - Search the internet, bash access.
+Day 4 - Add memory(long term memory-across context) and checkpointing(short term memory-within context) -  Answer questions using live information.
 
-Day 5 - Add memory and checkpointing.
+Day 5 - Add Middleware(cointrol layers) - bashAccess, summarize messages, humanInLoop
 
 Day 6 - Connect external knowledge using RAG and databases.
 
 Day 7 - Build a production-ready multi-session AI Agent.
-
-
-
-
-
-
-- Answer questions using live information
-
-
-## Day 3: Add Middleware
-
-Add control layers between:
 
 
 ## Prerequisites
