@@ -26,4 +26,29 @@ Current features:
 - Conversation history using Streamlit session state
 
 
-## Day 2: Add Database, Role based login and so more..
+## Day 2: Add Database, Role based login and langchain chain
+
+### LangChain Prompt Templates & LCEL Chain
+- Added `ChatPromptTemplate` for structured prompts.
+- Added:
+  - System message for assistant behaviour.
+  - `MessagesPlaceholder` for maintaining chat history.
+  - Human message template for user input.
+- Implemented LCEL chain
+  
+### Python Package Structure
+Converted the project into a Python package.
+- pyproject.toml
+- support_chatbot/
+│
+├── init.py
+├── supportApp.py
+├── db_init.py
+└── auth.py
+
+### SQLite Database Initialization
+- ecommerce.db
+- ecommerce_setup.sql
+- db_init.py
+### Authentication Module
+-auth.py
