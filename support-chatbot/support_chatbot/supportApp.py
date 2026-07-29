@@ -8,6 +8,13 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 #threadId: unique context
 from uuid import uuid4
 from auth import authenticate_user
+#sqlite save/load
+from conversation_store import (
+    save_conversation,
+    load_conversations,
+)
+
+
 
 """
 Author: Devyani28
@@ -90,6 +97,14 @@ def chat_round(chain, user_input):
         st.session_state.conversations[
             st.session_state.conversation_id
         ] = st.session_state.messages.copy()
+    if (st.session_state.user_email and st.session_state.conversation_id):
+        save_conversation(
+            st.session_state.conversation_id,
+            st.session_state.user_email,
+            st.session_state.messages,
+        )
+
+
 
 #day-2: lets advance chat_round, invoke llm with chain of prompt | llm, for context of prev msg
 def build_chain(llm):
@@ -123,6 +138,14 @@ def start_new_conversation():
     st.session_state.conversation_id = conversation_id
     st.session_state.messages = messages
     st.session_state.conversations[conversation_id] = messages.copy()
+    #persist in db
+    if st.session_state.user_email:
+        save_conversation(
+            conversation_id,
+            st.session_state.user_email,
+            messages,
+        )
+
 
 def load_conversation(conversation_id):
     """
@@ -169,7 +192,17 @@ def main():
             if user:
                 st.session_state.user_email = user["email"]
                 st.session_state.user_role = user["role"]
-                start_new_conversation() #new context at every login
+                # start_new_conversation() #new context at every login
+                #Day4: get from db
+                st.session_state.conversations = load_conversations(
+                    user["email"]
+                    # st.session_state.user_email
+                )
+                if st.session_state.conversations:
+                    first_key = next(iter(st.session_state.conversations))
+                    load_conversation(first_key)
+                else:
+                    start_new_conversation()
                 st.success("Login successful!")
                 st.rerun()
             else:
@@ -216,8 +249,9 @@ def main():
     # Get user input
     prompt = st.chat_input("Ask me anything.")
     if prompt:
-        if st.session_state.conversation_id is None:
-            start_new_conversation() #if prompt not have id, than
+        # if st.session_state.conversation_id is None:
+        #     start_new_conversation() #if prompt not have id, than
+        # chat load based on user
         # Get LLM instance
         llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0.5)
         chain = build_chain(llm)

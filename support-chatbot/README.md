@@ -82,3 +82,30 @@ load_conversation(UUID)
    ▼
 Chat History Restored
 
+##Day 4: Doc loader to VectorDB(chroma), RAG using chunks,embeddings & Agent for select tools-LangGraph
+
+#LangGraph agent flow
+User
+ |
+ | prompt
+ v
+CompiledStateGraph (agent)
+ |
+ | decides
+ |
+ +---- simple greeting
+ |        |
+ |        v
+ |      LLM response
+ |
+ +---- policy question
+          |
+          v
+     search_policies tool
+          |
+          v
+     ChromaDB retrieval
+          |
+          v
+        LLM answer
+
