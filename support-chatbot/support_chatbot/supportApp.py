@@ -7,12 +7,16 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 #threadId: unique context
 from uuid import uuid4
+#custom
 from auth import authenticate_user
 #sqlite save/load
 from conversation_store import (
     save_conversation,
     load_conversations,
-)
+) 
+from support_chatbot.rag_tool import initialize_vector_store
+#langgraph - select tools
+from support_chatbot.agent import get_agent
 
 
 
@@ -46,7 +50,12 @@ def init_session():
     st.session_state.setdefault("messages", [])
     st.session_state.setdefault("user_email", None)
     st.session_state.setdefault("user_role", None)
-    st.session_state.setdefault("conversation_id", None)  
+    st.session_state.setdefault("conversation_id", None) 
+    # RAG knowledge base status
+    st.session_state.setdefault(
+        "vector_store_ready",
+        False
+    ) 
 
 
 #load all history on evry rerun
@@ -67,12 +76,22 @@ def render_history():
 
 #handel every prompt from user        
 #Day2 # def chat_round(llm, user_input):
-def chat_round(chain, user_input):
+# def chat_round(chain, user_input):
+#Day 5: agent for select tool
+def chat_round(user_input):
+    # """
+    # Handles one chat turn:
+    # 1. Add user message to history
+    # 2. Send full conversation history to the model
+    # 3. Add assistant response to history
+    # """
+    #Day 5: langgraph agent decides tools
     """
-    Handles one chat turn:
-    1. Add user message to history
-    2. Send full conversation history to the model
-    3. Add assistant response to history
+    Handles one agent chat turn:
+    1. Add user message to session history
+    2. Convert history for LangGraph agent
+    3. Invoke agent
+    4. Save assistant response
     """
     # Append user message
     st.session_state.messages.append(
@@ -84,14 +103,46 @@ def chat_round(chain, user_input):
     #     st.session_state.messages
     # )
     #Day2 - advance invoke llm using chain
-    response = chain.invoke(
+    # response = chain.invoke(
+    #     {
+    #         "history": st.session_state.messages,
+    #         "input": user_input,
+    #     }
+    # )
+    # # Append assistant response
+    # st.session_state.messages.append(response)
+    #Day 5: LangChain msg to agent for select tools
+    # Convert LangChain messages to agent format
+    messages = []
+    for msg in st.session_state.messages:
+        if isinstance(msg, HumanMessage):
+            role = "user"
+        else:
+            role = "assistant"
+        messages.append(
+            {
+                "role": role,
+                "content": msg.content,
+            }
+        )
+    # Invoke LangGraph agent
+    result = get_agent().invoke(
         {
-            "history": st.session_state.messages,
-            "input": user_input,
+            "messages": messages
         }
     )
-    # Append assistant response
-    st.session_state.messages.append(response)
+    # Extract last agent message
+    response_content = ""
+    if result.get("messages"):
+        last_message = result["messages"][-1]
+        response_content = last_message.content
+    if not response_content:
+        response_content = "Sorry, I could not generate a response."
+    # Save assistant message for UI
+    st.session_state.messages.append(
+        AIMessage(content=response_content)
+    )
+    
     #Day3: chat/msg with conversationId
     if st.session_state.conversation_id:
         st.session_state.conversations[
@@ -171,6 +222,19 @@ def main():
     #test key load: print("API key exists:", bool(os.getenv("OPENAI_API_KEY")))
     # Initialize session and render chat history
     init_session()
+    # ---------------- Initialize RAG ----------------
+    if not st.session_state.vector_store_ready:
+        try:
+            with st.spinner(
+                "Initializing knowledge base..."
+            ):
+                initialize_vector_store()
+            st.session_state.vector_store_ready = True
+        except Exception as e:
+            st.error(
+                f"Failed to initialize knowledge base: {e}"
+            )
+            st.stop()
 
     # ---------------- Login Form----------------
     if st.session_state.user_email is None:
@@ -253,13 +317,15 @@ def main():
         #     start_new_conversation() #if prompt not have id, than
         # chat load based on user
         # Get LLM instance
-        llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0.5)
-        chain = build_chain(llm)
+        # llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0.5)
+        # chain = build_chain(llm)
         # Show assistant response area with spinner
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 # chat_round(llm, prompt)
-                chat_round(chain, prompt)
+                # chat_round(chain, prompt)
+                #Day5: use agent/graph select tools, not llm
+                chat_round(prompt)
         # Refresh UI to display updated messages
         st.rerun()
 

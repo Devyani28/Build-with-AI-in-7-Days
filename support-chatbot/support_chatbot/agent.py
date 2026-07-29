@@ -7,6 +7,8 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
 
+_agent = None
+
 #compiled staegraph
 def create_support_agent():
     """

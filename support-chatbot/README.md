@@ -109,3 +109,25 @@ CompiledStateGraph (agent)
           v
         LLM answer
 
+##Day 5: Agent for select tools
+
+#chat invoke flow:
+User Input
+   |
+chat_round()
+   |
+get_agent()
+   |
+LangGraph Agent
+   |
+   +---- normal answer
+   |
+   +---- search_policies tool
+             |
+             v
+          ChromaDB
+   |
+AIMessage saved
+   |
+Streamlit UI + conversations.db
+
