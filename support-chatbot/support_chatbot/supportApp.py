@@ -12,7 +12,6 @@ from auth import authenticate_user
 """
 Author: Devyani28
 Date: 2026-07-27
-Description: support chatbot
 """
 
 #at every step chk compilationErr of py file: py_compile supportApp.py
@@ -86,6 +85,11 @@ def chat_round(chain, user_input):
     )
     # Append assistant response
     st.session_state.messages.append(response)
+    #Day3: chat/msg with conversationId
+    if st.session_state.conversation_id:
+        st.session_state.conversations[
+            st.session_state.conversation_id
+        ] = st.session_state.messages.copy()
 
 #day-2: lets advance chat_round, invoke llm with chain of prompt | llm, for context of prev msg
 def build_chain(llm):
@@ -107,7 +111,28 @@ def build_chain(llm):
 
 #load db using db_init.py
 
+#Day2: multiple conversations based on id
+def start_new_conversation():
+    """
+    Start a new chat thread.
+    """
+    conversation_id = str(uuid4())
+    messages = [
+        AIMessage(content="Hi! Ask me anything.")
+    ]
+    st.session_state.conversation_id = conversation_id
+    st.session_state.messages = messages
+    st.session_state.conversations[conversation_id] = messages.copy()
 
+def load_conversation(conversation_id):
+    """
+    Load an existing conversation.
+    """
+    if conversation_id in st.session_state.conversations:
+        st.session_state.conversation_id = conversation_id
+        st.session_state.messages = (
+            st.session_state.conversations[conversation_id].copy()
+        )
 
 def main():
     # Configure Streamlit page
@@ -123,10 +148,76 @@ def main():
     #test key load: print("API key exists:", bool(os.getenv("OPENAI_API_KEY")))
     # Initialize session and render chat history
     init_session()
-    render_history()
+
+    # ---------------- Login Form----------------
+    if st.session_state.user_email is None:
+        with st.form("login_form"):
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            role = st.selectbox(
+                "Role",
+                ["customer", "admin"]
+            )
+            login = st.form_submit_button("Login")
+
+        if login:
+            user = authenticate_user(
+                email=email,
+                password=password,
+                role=role
+            )
+            if user:
+                st.session_state.user_email = user["email"]
+                st.session_state.user_role = user["role"]
+                start_new_conversation() #new context at every login
+                st.success("Login successful!")
+                st.rerun()
+            else:
+                st.error("Invalid email, password or role.")
+        return
+    
+     # ---------------- User Info ----------------
+    st.info(
+        f"""
+        **Logged in as:** {st.session_state.user_email}
+
+        **Role:** {st.session_state.user_role}
+
+        **Conversation ID:** {st.session_state.conversation_id or "—"}
+        """
+    )
+     
+     # ---------------- Sidebar ----------------
+    st.sidebar.header("Conversations")
+    conversation_options = (
+        list(st.session_state.conversations.keys())
+        if st.session_state.conversations
+        else ["(no threads yet)"]
+    )
+    #select sidebar selected id
+    selected = st.sidebar.selectbox(
+        "Select Conversation",
+        conversation_options,
+        index=conversation_options.index(st.session_state.conversation_id)
+        if st.session_state.conversation_id in conversation_options
+        else 0,
+    )
+    if ( #render id based history
+        selected != "(no threads yet)"
+        and selected != st.session_state.conversation_id):
+            load_conversation(selected)
+            st.rerun()
+    if st.sidebar.button("Start New Conversation"):
+        start_new_conversation()
+        st.rerun()
+
+    render_history() #without threadId/authenticateUser
+
     # Get user input
     prompt = st.chat_input("Ask me anything.")
     if prompt:
+        if st.session_state.conversation_id is None:
+            start_new_conversation() #if prompt not have id, than
         # Get LLM instance
         llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0.5)
         chain = build_chain(llm)

@@ -52,3 +52,33 @@ Converted the project into a Python package.
 - db_init.py
 ### Authentication Module
 -auth.py
+
+## Day 3: Multi context spport(In-Memory)
+
+Flow:
+  Login
+    │
+    ▼
+Start New Conversation
+   │
+   ▼
+UUID Generated
+   │
+   ▼
+messages = [AIMessage(...)]
+   │
+   ▼
+conversations[UUID] = messages
+   │
+   ▼
+Sidebar lists UUIDs
+   │
+   ▼
+Select UUID
+   │
+   ▼
+load_conversation(UUID)
+   │
+   ▼
+Chat History Restored
+
