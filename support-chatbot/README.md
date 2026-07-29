@@ -133,3 +133,5 @@ Streamlit UI + conversations.db
 
 ##Day 6: Context saving within chat: checkpointing
 
+##Day 7: wrap tool call with logging middleware
+

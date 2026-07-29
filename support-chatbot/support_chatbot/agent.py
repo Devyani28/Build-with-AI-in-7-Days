@@ -11,6 +11,8 @@ load_dotenv()
 import os
 import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
+#toolcall middleware
+from support_chatbot.middleware import get_logging_middleware
 
 _agent = None
 _checkpointer = None
@@ -49,6 +51,7 @@ def create_support_agent():
         tools=[search_policies],
         system_prompt=system_prompt,
         checkpointer=get_checkpointer(), #Day6
+        middleware=get_logging_middleware(), #Day7
     )
 
 def get_agent():
