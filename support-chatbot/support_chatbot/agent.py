@@ -15,9 +15,15 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from support_chatbot.middleware import get_logging_middleware
 #sql tool
 from support_chatbot.sql_tools import get_sql_tools
+#Human In Loop
+from support_chatbot.action_tools import get_action_tools
+from support_chatbot.context import SessionContext
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+
 
 _agent = None
 _checkpointer = None
+_checkpoint_conn = None
 
 #compiled staegraph
 def create_support_agent():
@@ -29,60 +35,99 @@ def create_support_agent():
         temperature=0.2,
     )
     system_prompt = """
-    You are an AI customer support assistant for an e-commerce company.
+    You are an e-commerce customer support assistant.
 
-    You have two capabilities:
+You have three capabilities.
 
-    1. Policy search:
-    Use search_policies tool ONLY for:
-    - return policy
-    - shipping policy
-    - refund policy
-    - cancellation policy
-    - warranty
-    - FAQs
+1. Policy questions:
+Use search_policies ONLY for:
+- shipping policy
+- refund policy
+- return policy
+- cancellation policy
+- warranty
+- FAQ
 
-    2. Customer data queries:
-    Use SQL tools for user-specific questions:
-    - my orders
-    - order status
-    - payment status
-    - returns
-    - purchase history
-    - total spending
+2. Customer data:
+Use SQL tools for:
+- my orders
+- order status
+- payments
+- spending history
 
-    Security rules:
-    - Always use SQL tools for customer data.
-    - Always filter results by the logged-in user's email.
-    - Never answer customer-specific questions from memory.
-    - Never expose another user's data.
+Always filter SQL using the logged-in user's email.
+Never expose another customer's data.
 
-    Example query pattern:
+3. Order actions:
 
-    Orders:
-    JOIN users ON orders.user_id = users.id
-    WHERE users.email = customer_email
+For cancellation:
 
-    Tickets:
-    JOIN users ON tickets.user_id = users.id
-    WHERE users.email = customer_email
+Step 1:
+Use SQL to verify:
+- order belongs to logged-in user
+- order status
 
-    If information is not found, say so clearly.
+Step 2:
+If cancellation is allowed:
+request admin approval.
 
-    Do not use tools for:
-    - greetings
-    - casual conversation
-    - general questions.
+Step 3:
+After approval:
+call cancel_order_action.
+
+For returns:
+
+Step 1:
+Use SQL to verify:
+- ownership
+- order status
+
+Step 2:
+Request admin approval.
+
+Step 3:
+After approval:
+call create_return_action.
+
+
+Rules:
+- Never directly cancel or return an order.
+- Never bypass approval.
+- Use only one action tool per turn.
+- Maximum SQL attempts: 3.
+- Never guess customer information.
     """
     return create_agent(
         model=llm,
         tools=[
             search_policies,
-            *get_sql_tools()
+            *get_sql_tools(),
+            *get_action_tools(),
         ],
         system_prompt=system_prompt,
         checkpointer=get_checkpointer(), #Day6
-        middleware=get_logging_middleware(), #Day7
+        middleware=[
+        *get_logging_middleware(),
+
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+                "cancel_order_action": {
+                    "allowed_decisions": [
+                        "approve",
+                        "reject",
+                    ],
+                },
+                "create_return_action": {
+                    "allowed_decisions": [
+                        "approve",
+                        "reject",
+                    ],
+                },
+            }
+        ),
+    ],
+
+    context_schema=SessionContext,
     )
 
 def get_agent():
@@ -95,27 +140,34 @@ def get_agent():
     return _agent
 
 def get_checkpointer():
-    global _checkpointer
+    global _checkpointer, _checkpoint_conn
+
     if _checkpointer is None:
+
         db_path = os.getenv(
             "CHECKPOINTS_DB_PATH",
             "checkpoints.sqlite"
         )
-        conn = sqlite3.connect(
+
+        _checkpoint_conn = sqlite3.connect(
             db_path,
-            check_same_thread=False
+            check_same_thread=False,
+            timeout=30,
         )
+
         _checkpointer = SqliteSaver(
-            conn
+            _checkpoint_conn
         )
+
         _checkpointer.setup()
+
     return _checkpointer
 
 def get_thread_config(user_email, conversation_id):
     return {
         "configurable": {
             "thread_id": f"{user_email}:{conversation_id}",
-            "user_email": "sivaprasad.valluru@gmail.com",   # user_email
+            # "user_email": "sivaprasad.valluru@gmail.com",   # user_email for sqltool
         },
         "recursion_limit": 20,
     }

@@ -20,6 +20,10 @@ from support_chatbot.agent import (
     get_agent,
     get_thread_config,
 )
+#HIL
+from support_chatbot.context import SessionContext
+from support_chatbot.hitl_utils import handle_interrupt
+from langgraph.types import Command
 
 
 
@@ -55,10 +59,9 @@ def init_session():
     st.session_state.setdefault("user_role", None)
     st.session_state.setdefault("conversation_id", None) 
     # RAG knowledge base status
-    st.session_state.setdefault(
-        "vector_store_ready",
-        False
-    ) 
+    st.session_state.setdefault("vector_store_ready",False)
+    #HIL
+    st.session_state.setdefault("waiting_for_approval",False)
 
 
 #load all history on evry rerun
@@ -133,8 +136,15 @@ def chat_round(user_input):
         st.session_state.user_email,
         st.session_state.conversation_id,
     )
+    #Day 8- HIL middleware
+    agent = get_agent()
+    context = SessionContext(
+        user_email=st.session_state.user_email,
+        conversation_id=st.session_state.conversation_id,
+        role=st.session_state.user_role,
+    )
     # Invoke LangGraph agent
-    result = get_agent().invoke(
+    result = agent.invoke(
         {
             "messages": [
                 {
@@ -148,8 +158,26 @@ def chat_round(user_input):
                         """
                 }
             ]
-        }, config=config, #checkpointing
+        }, 
+        # Command(
+        #     resume={
+        #         "decision": "approve"
+        #     }
+        # ),
+        config=config, context=context, #checkpointing & middlewareHIL
     )
+    #interrupt
+    interrupt_message = handle_interrupt(
+        result,
+        st.session_state.conversation_id,
+        st.session_state.user_email
+    )
+
+    if interrupt_message:
+        reply = interrupt_message
+    else:
+        reply = result["messages"][-1].content
+
     # Extract last agent message
     response_content = ""
     if result.get("messages"):
@@ -158,9 +186,10 @@ def chat_round(user_input):
     if not response_content:
         response_content = "Sorry, I could not generate a response."
     # Save assistant message for UI
-    st.session_state.messages.append(
-        AIMessage(content=response_content)
-    )
+    if not interrupt_message:
+        st.session_state.messages.append(
+            AIMessage(content=response_content)
+        )
     
     #Day3: chat/msg with conversationId
     if st.session_state.conversation_id:

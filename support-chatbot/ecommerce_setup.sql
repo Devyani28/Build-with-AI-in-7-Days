@@ -304,4 +304,17 @@ INSERT INTO email_logs (id, user_id, email, subject, body_preview, email_type, s
    'RETURN_UPDATE',
    '2026-05-06T11:15:00');
 
+CREATE TABLE IF NOT EXISTS pending_actions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    thread_id TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    action_type TEXT NOT NULL,
+    order_id INTEGER,
+    product_name TEXT,
+    reason TEXT,
+    status TEXT DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ --reload: uv run python -c "import sqlite3; print(sqlite3.connect('ecommerce.db').execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name='pending_actions'\").fetchone())"
 
