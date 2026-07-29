@@ -92,7 +92,7 @@ def tool_logging_middleware(request, handler):
         print(
             f"[{_ts()}] TOOL SUCCESS"
         )
-
+        print("TOOL RESULT:", result)
         return result
 
     except Exception as e:

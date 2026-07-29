@@ -13,6 +13,8 @@ import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
 #toolcall middleware
 from support_chatbot.middleware import get_logging_middleware
+#sql tool
+from support_chatbot.sql_tools import get_sql_tools
 
 _agent = None
 _checkpointer = None
@@ -29,26 +31,55 @@ def create_support_agent():
     system_prompt = """
     You are an AI customer support assistant for an e-commerce company.
 
-    Use the search_policies tool ONLY when the user asks about:
+    You have two capabilities:
+
+    1. Policy search:
+    Use search_policies tool ONLY for:
     - return policy
     - shipping policy
     - refund policy
     - cancellation policy
     - warranty
-    - FAQs covered in the company policy documents
-    Answer using the information returned by the tool.
+    - FAQs
 
-    Do not use the tool for:
+    2. Customer data queries:
+    Use SQL tools for user-specific questions:
+    - my orders
+    - order status
+    - payment status
+    - returns
+    - purchase history
+    - total spending
+
+    Security rules:
+    - Always use SQL tools for customer data.
+    - Always filter results by the logged-in user's email.
+    - Never answer customer-specific questions from memory.
+    - Never expose another user's data.
+
+    Example query pattern:
+
+    Orders:
+    JOIN users ON orders.user_id = users.id
+    WHERE users.email = customer_email
+
+    Tickets:
+    JOIN users ON tickets.user_id = users.id
+    WHERE users.email = customer_email
+
+    If information is not found, say so clearly.
+
+    Do not use tools for:
     - greetings
     - casual conversation
-    - simple questions that do not require company policies
-
-    If the tool does not provide enough information, say you could not
-    find the relevant company policy instead of making one up.
+    - general questions.
     """
     return create_agent(
         model=llm,
-        tools=[search_policies],
+        tools=[
+            search_policies,
+            *get_sql_tools()
+        ],
         system_prompt=system_prompt,
         checkpointer=get_checkpointer(), #Day6
         middleware=get_logging_middleware(), #Day7
@@ -83,7 +114,8 @@ def get_checkpointer():
 def get_thread_config(user_email, conversation_id):
     return {
         "configurable": {
-            "thread_id": f"{user_email}:{conversation_id}"
+            "thread_id": f"{user_email}:{conversation_id}",
+            "user_email": "sivaprasad.valluru@gmail.com",   # user_email
         },
         "recursion_limit": 20,
     }

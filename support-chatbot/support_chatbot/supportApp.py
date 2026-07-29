@@ -139,7 +139,13 @@ def chat_round(user_input):
             "messages": [
                 {
                     "role": "user",
-                    "content": user_input,
+                    # "content": user_input,
+                    "content": f"""
+                        Logged in user email: {st.session_state.user_email}
+                        Question:
+                        {user_input}
+                        When using SQL, filter using the logged in user email above.
+                        """
                 }
             ]
         }, config=config, #checkpointing

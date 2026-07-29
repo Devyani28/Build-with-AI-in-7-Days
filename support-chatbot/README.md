@@ -135,3 +135,5 @@ Streamlit UI + conversations.db
 
 ##Day 7: wrap tool call with logging middleware
 
+##Day 8: user specific data from DB- SqlTool
+
