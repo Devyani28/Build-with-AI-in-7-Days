@@ -16,7 +16,10 @@ from conversation_store import (
 ) 
 from support_chatbot.rag_tool import initialize_vector_store
 #langgraph - select tools
-from support_chatbot.agent import get_agent
+from support_chatbot.agent import (
+    get_agent,
+    get_thread_config,
+)
 
 
 
@@ -113,23 +116,33 @@ def chat_round(user_input):
     # st.session_state.messages.append(response)
     #Day 5: LangChain msg to agent for select tools
     # Convert LangChain messages to agent format
-    messages = []
-    for msg in st.session_state.messages:
-        if isinstance(msg, HumanMessage):
-            role = "user"
-        else:
-            role = "assistant"
-        messages.append(
-            {
-                "role": role,
-                "content": msg.content,
-            }
-        )
+    # messages = []
+    # for msg in st.session_state.messages:
+    #     if isinstance(msg, HumanMessage):
+    #         role = "user"
+    #     else:
+    #         role = "assistant"
+    #     messages.append(
+    #         {
+    #             "role": role,
+    #             "content": msg.content,
+    #         }
+    #     )
+    #Day 6 : checkpointing
+    config = get_thread_config(
+        st.session_state.user_email,
+        st.session_state.conversation_id,
+    )
     # Invoke LangGraph agent
     result = get_agent().invoke(
         {
-            "messages": messages
-        }
+            "messages": [
+                {
+                    "role": "user",
+                    "content": user_input,
+                }
+            ]
+        }, config=config, #checkpointing
     )
     # Extract last agent message
     response_content = ""

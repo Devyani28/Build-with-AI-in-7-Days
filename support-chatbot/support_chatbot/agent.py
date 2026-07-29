@@ -7,7 +7,13 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
 
+#checkpointing- save across context
+import os
+import sqlite3
+from langgraph.checkpoint.sqlite import SqliteSaver
+
 _agent = None
+_checkpointer = None
 
 #compiled staegraph
 def create_support_agent():
@@ -42,6 +48,7 @@ def create_support_agent():
         model=llm,
         tools=[search_policies],
         system_prompt=system_prompt,
+        checkpointer=get_checkpointer(), #Day6
     )
 
 def get_agent():
@@ -52,3 +59,28 @@ def get_agent():
     if _agent is None:
         _agent = create_support_agent()
     return _agent
+
+def get_checkpointer():
+    global _checkpointer
+    if _checkpointer is None:
+        db_path = os.getenv(
+            "CHECKPOINTS_DB_PATH",
+            "checkpoints.sqlite"
+        )
+        conn = sqlite3.connect(
+            db_path,
+            check_same_thread=False
+        )
+        _checkpointer = SqliteSaver(
+            conn
+        )
+        _checkpointer.setup()
+    return _checkpointer
+
+def get_thread_config(user_email, conversation_id):
+    return {
+        "configurable": {
+            "thread_id": f"{user_email}:{conversation_id}"
+        },
+        "recursion_limit": 20,
+    }
